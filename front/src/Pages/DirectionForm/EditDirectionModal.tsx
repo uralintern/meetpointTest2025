@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'; // Хуки React
 import { useNotification } from 'Components/Common/Notification/Notification'; // Уведомления
 import NameInputField from 'Components/Forms/NameInputField'; // Поле ввода названия
-import DescriptionInputField from 'Components/Forms/DescriptioninputField'; // Поле ввода описания
+import DescriptionInputField from 'Components/Forms/DescriptionInputField.tsx'; // Поле ввода описания
 import UserSelector from 'Components/Selectors/UserSelector'; // Селектор пользователей
 import EventSelector from 'Components/Selectors/EventSelector'; // Селектор мероприятий
 import { Direction, useUpdateDirectionMutation } from 'Features/ApiSlices/directionSlice'; // Типы и API направлений
@@ -17,11 +17,11 @@ type EditDirectionModalProps = {
 /**
  * Модальное окно для редактирования существующего направления.
  * Позволяет изменить название, описание, куратора и мероприятие направления.
- * 
+ *
  * @component
  * @example
  * // Пример использования:
- * <EditDirectionModal 
+ * <EditDirectionModal
  *   direction={selectedDirection}
  *   isOpen={isModalOpen}
  *   onClose={() => setIsModalOpen(false)}
@@ -71,8 +71,8 @@ export default function EditDirectionModal({
    * @param {number | null} userId - ID выбранного пользователя
    */
   const handleCuratorChange = (userId: number | null) => {
-    setUpdatedDirection((prev) => ({ 
-      ...prev, 
+    setUpdatedDirection((prev) => ({
+      ...prev,
       leader: userId,
       leader_id: userId
     }));

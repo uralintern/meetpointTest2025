@@ -11,7 +11,7 @@ import BackButton from 'Components/Common/BackButton/BackButton';
 import "Styles/FormStyle.scss";
 import DateInputField from 'Components/Forms/DateInputField';
 import NameInputField from 'Components/Forms/NameInputField';
-import DescriptionInputField from 'Components/Forms/DescriptioninputField';
+import DescriptionInputField from 'Components/Forms/DescriptionInputField.tsx';
 import { useGetSpecializationsQuery } from 'Features/ApiSlices/specializationSlice';
 import SideStepNavigator from 'Components/Sections/SideStepNavigator';
 import { useCreateStatusAppMutation } from 'Features/ApiSlices/statusAppSlice';

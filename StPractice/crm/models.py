@@ -101,7 +101,7 @@ class Role(models.Model):
         from django.core.exceptions import ValidationError
 
         # Проверка для ролей, требующих привязки к объекту
-        if self.role_type in ['organizer', 'direction_leader', 'curator']:
+        if self.role_type in ['direction_leader', 'curator']:
             if not self.content_object:
                 raise ValidationError(
                     f"Роль {self.get_role_type_display()} требует привязки к объекту"
@@ -163,8 +163,38 @@ class Status_order(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'number'],
+                name='unique_event_position'
+            ),
+            models.UniqueConstraint(
+                fields=['event', 'status'],
+                name='unique_event_status'
+            )
+        ]
+        ordering = ['number']
+        indexes = [
+            models.Index(fields=['event', 'number']),
+            models.Index(fields=['status', 'event'])
+        ]
+
     def __str__(self):
-        return f'{self.number}'
+        return f'{self.event} - {self.status} (Позиция: {self.number})'
+
+    def save(self, *args, **kwargs):
+        if not self.number:
+            last_order = Status_order.objects.filter(event=self.event).order_by('-number').first()
+            self.number = last_order.number + 1 if last_order else 1
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        if self.number < 1:
+            raise ValidationError({'number': 'Позиция должна быть положительным числом'})
+
+        if Status_order.objects.filter(event=self.event, number=self.number).exclude(pk=self.pk).exists():
+            raise ValidationError({'number': 'Позиция уже занята для этого события'})
 
 
 class Direction(models.Model):
@@ -196,11 +226,19 @@ class Application(models.Model):
     is_link = models.BooleanField(verbose_name="Состоит в чате?", default=False)
     is_approved = models.BooleanField(verbose_name="Заявка одобрена?", default=False)
     comment = models.TextField(verbose_name="Отзыв", max_length=1000, null=True, blank=True)
-    date_sub = models.DateTimeField(verbose_name="Дата подачи", auto_now=True)
-    date_end = models.DateTimeField(verbose_name="Дата изменения", null=True, blank=True)
+    date_sub = models.DateTimeField(verbose_name="Дата изменения", auto_now=True)
+    date_end = models.DateTimeField(verbose_name="Дата подачи", null=True, blank=True)
 
     def __str__(self):
         return f'{self.user}'
+
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self._previous_status = self.status
+
+    def save(self, *args, **kwargs):
+        self._previous_status = self.status if self.id else None
+        super().save(*args, **kwargs)
 
 
 class Test(models.Model):
@@ -289,6 +327,8 @@ class FunctionOrder(models.Model):
         return f'{self.get_type_function_display()} #{self.position}'
 
     def clean(self):
+        if sum([bool(self.robot), bool(self.trigger)]) != 1:
+            raise ValidationError('Должен быть выбран только один объект: робот ИЛИ триггер')
         # Валидация соответствия типа функции и объекта
         if self.type_function == 'robot' and not self.robot:
             raise ValidationError('Необходимо выбрать робота для этого типа функции')
@@ -296,10 +336,10 @@ class FunctionOrder(models.Model):
             raise ValidationError('Необходимо выбрать триггер для этого типа функции')
 
         # Валидация параметров конфигурации
-        try:
-            if self.type_function == 'robot':
-                self._validate_robot_config()
-            else:
-                self._validate_trigger_config()
-        except json.JSONDecodeError:
-            raise ValidationError('Некорректный JSON в конфигурации')
+        # try:
+        #     # if self.type_function == 'robot':
+        #     #     self._validate_robot_config()
+        #     # else:
+        #     #     self._validate_trigger_config()
+        # except json.JSONDecodeError:
+        #     raise ValidationError('Некорректный JSON в конфигурации')

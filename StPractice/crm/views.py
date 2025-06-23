@@ -55,6 +55,38 @@ class TelegramBotAPI(APIView):
     """
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Отправка сообщения через Telegram бота",
+        request_body=TelegramMessageSerializer,
+        responses={
+            200: openapi.Response(
+                description="Сообщение успешно отправлено",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "message_id": 123
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Неверные входные данные",
+                examples={
+                    "application/json": {
+                        "chat_id": ["Это поле обязательно."]
+                    }
+                }
+            ),
+            500: openapi.Response(
+                description="Ошибка сервера",
+                examples={
+                    "application/json": {
+                        "status": "error",
+                        "detail": "Internal server error"
+                    }
+                }
+            )
+        }
+    )
     def post(self, request):
         serializer = TelegramMessageSerializer(data=request.data)
         if not serializer.is_valid():
@@ -93,16 +125,61 @@ class TelegramBotAPI(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def bot_webhook(request):
-    data = request.data  # Данные от пользователя (JSON, FormData и т.д.)
-    user_message = data.get('text', '')
+class TelegramWebhookView(APIView):
+    permission_classes = []  # Отключаем проверки прав доступа
+    authentication_classes = []  # Отключаем аутентификацию
+    stages = [None, "BIO", "Test", "Link", "Confirm"]
+    current_stage = stages[0]
 
-    # Обработка сообщения (логика бота)
-    response_text = f"Вы написали: {user_message}"
+    def post(self, request):
 
-    return Response({'response': response_text})
+        # Проверка секретного токена
+        secret_token = request.headers.get('X-Telegram-Bot-Api-Secret-Token')
+        if secret_token != settings.TELEGRAM_SECRET_TOKEN:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        # Обработка данных
+        update = request.data
+        self.handle_update(update)
+        return Response(status=status.HTTP_200_OK)
+
+    def handle_update(self, update):
+        # Обработка различных типов обновлений
+        print(update)
+        # if update["entities"]:
+        #     print(update)
+        #     self.handle_command(update['message'], update['text'])
+        if 'message' in update:
+            self.handle_message(update['message'])
+
+    def handle_message(self, message):
+        text = message.get('text')
+        chat_id = message['chat']['id']
+
+    def handle_command(self, message, text):
+        if text == "/start":
+            response = (f'Здравствуйте, {message["from"]["first_name"]}!')
+            self.send_message(message['chat']['id'], response)
+            user = Profile.objects.get(telegram=f'@{message['from']['username']}')
+
+            if user:
+                contact = Contact.objects.get(profile=user)
+                if contact:
+                    self.send_message(message['chat']['id'], "Телеграмм уже подтверждён")
+                else:
+                    Contact.objects.create(profile=user,
+                                           type="ТГ",
+                                           data=message['chat']['id'],
+                                           is_verified=True)
+                    self.send_message(message['chat']['id'], "Телеграмм подтверждён")
+            else:
+                self.send_message(message['chat']['id'],
+                                  "Сначала зарегистрируйтесь на сайте, потом повторите команду /start")
+
+    def send_message(self, chat_id, text):
+        # Отправка сообщения через API Telegram
+        url = f'https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage'
+        requests.post(url, json={'chat_id': chat_id, 'text': text})
 
 
 class VKMessagesAPI(APIView):
@@ -118,6 +195,31 @@ class VKMessagesAPI(APIView):
     """
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Отправка сообщения через ВКонтакте",
+        request_body=VKMessageSerializer,
+        responses={
+            200: openapi.Response(
+                description="Сообщение успешно отправлено",
+                examples={
+                    "application/json": {
+                        "message_id": 456
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Неверные входные данные или ошибка VK API",
+                examples={
+                    "application/json": {
+                        "error": {
+                            "error_code": 100,
+                            "error_msg": "Неверный параметр"
+                        }
+                    }
+                }
+            )
+        }
+    )
     def post(self, request):
         serializer = VKMessageSerializer(data=request.data)
         if not serializer.is_valid():
@@ -188,6 +290,29 @@ class EventAPIListPagination(pagination.PageNumberPagination):
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Регистрация нового пользователя",
+        request_body=RegisterSerializer,
+        responses={
+            201: openapi.Response(
+                description="Успешная регистрация",
+                examples={
+                    "application/json": {
+                        "message": "Пользователь успешно зарегистрирован"
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Неверные данные регистрации",
+                examples={
+                    "application/json": {
+                        "email": ["Это поле обязательно."],
+                        "password": ["Слишком короткий пароль"]
+                    }
+                }
+            )
+        }
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -228,6 +353,30 @@ class EventAPIList(generics.ListAPIView):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = (IsAuthenticated,)
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'search',
+                openapi.IN_QUERY,
+                description="Поиск по названию события",
+                type=openapi.TYPE_STRING
+            )
+        ],
+        responses={
+            200: EventSerializer(many=True),
+            401: openapi.Response(
+                description="Неавторизованный доступ",
+                examples={
+                    "application/json": {
+                        "detail": "Учетные данные не были предоставлены."
+                    }
+                }
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
     # filter_backends = [SearchFilter]
     # search_fields = ['name']
 
@@ -287,6 +436,44 @@ class ApplicationAPIList(generics.ListAPIView):
     serializer_class = ApplicationSerializer
     permission_classes = (IsAuthenticated,)
     filterset_class = ApplicationFilter
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'created_after',
+                openapi.IN_QUERY,
+                description="Фильтр по дате создания (>=)",
+                type=openapi.TYPE_STRING,
+                format='date'
+            ),
+            openapi.Parameter(
+                'created_before',
+                openapi.IN_QUERY,
+                description="Фильтр по дате создания (<=)",
+                type=openapi.TYPE_STRING,
+                format='date'
+            ),
+            openapi.Parameter(
+                'status',
+                openapi.IN_QUERY,
+                description="Фильтр по статусу заявки",
+                type=openapi.TYPE_STRING
+            )
+        ],
+        responses={
+            200: ApplicationSerializer(many=True),
+            400: openapi.Response(
+                description="Неверные параметры фильтрации",
+                examples={
+                    "application/json": {
+                        "created_after": ["Неправильный формат даты."]
+                    }
+                }
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
     # filter_backends = [SearchFilter]
     # search_fields = ['name']
 
@@ -295,6 +482,17 @@ class ApplicationAPICreate(generics.CreateAPIView):
     queryset = Application.objects.all()
     serializer_class = ApplicationCreateSerializer
     permission_classes = (IsAuthenticated,)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user.profile)
@@ -351,13 +549,31 @@ class ProfileAPI(generics.ListAPIView):
 
 
 class ProfileAPIUpdate(generics.RetrieveUpdateAPIView):
-    # queryset = Profile.objects.all()
+    queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
     permission_classes = (IsAuthenticated,)
 
-    def get_queryset(self):
-        # Возвращает профиль текущего пользователя
-        return Profile.objects.get(user=self.request.user)
+    @swagger_auto_schema(
+        operation_description="Обновление профиля пользователя",
+        request_body=ProfileSerializer,
+        responses={
+            200: ProfileSerializer,
+            400: openapi.Response(
+                description="Ошибки валидации",
+                examples={
+                    "application/json": {
+                        "phone": ["Неверный формат номера телефона."]
+                    }
+                }
+            )
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    # def get_queryset(self):
+    #     # Возвращает профиль текущего пользователя
+    #     return Profile.objects.get(user=self.request.user)
 
 
 class ProfilesAPIList(generics.ListAPIView):
@@ -808,3 +1024,59 @@ class PasswordResetConfirmView(APIView):
 
         except User.DoesNotExist or Profile.DoesNotExist:
             return Response({'error': 'Invalid token'}, status=400)
+
+
+class StatusViewSet(viewsets.ModelViewSet):
+    queryset = Status.objects.all().prefetch_related('robots', 'triggers')
+    serializer_class = StatusSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['is_positive']
+    search_fields = ['name', 'description']
+
+    @swagger_auto_schema(
+        operation_description="Получение списка статусов",
+        responses={
+            200: StatusSerializer(many=True),
+            403: openapi.Response(
+                description="Доступ запрещен",
+                examples={
+                    "application/json": {
+                        "detail": "У вас недостаточно прав для выполнения этого действия."
+                    }
+                }
+            )
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+class RobotViewSet(viewsets.ModelViewSet):
+    queryset = Robot.objects.all().select_related('status')
+    serializer_class = RobotSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['status']
+    search_fields = ['name', 'config']
+
+
+class TriggerViewSet(viewsets.ModelViewSet):
+    queryset = Trigger.objects.all().prefetch_related('actions')
+    serializer_class = TriggerSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    search_fields = ['name', 'condition']
+
+
+class StatusOrderViewSet(viewsets.ModelViewSet):
+    queryset = Status_order.objects.all().select_related('event', 'status')
+    serializer_class = StatusOrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['event', 'status']
+    ordering_fields = ['number']
+
+
+class FunctionOrderViewSet(viewsets.ModelViewSet):
+    queryset = FunctionOrder.objects.all().select_related('robot', 'trigger')
+    serializer_class = FunctionOrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['type_function', 'position']
+    ordering_fields = ['position']

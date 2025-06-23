@@ -10,7 +10,7 @@ import './CreateSpecializationModal.scss';
 import TrashIcon from 'assets/icons/trash-2.svg?react';
 import { Modal, Button } from 'antd';
 import NameInputField from 'Components/Forms/NameInputField';
-import DescriptionInputField from 'Components/Forms/DescriptioninputField';
+import DescriptionInputField from 'Components/Forms/DescriptionInputField.tsx';
 import { useNotification } from 'Components/Common/Notification/Notification';
 
 interface CreateSpecializationModalProps {

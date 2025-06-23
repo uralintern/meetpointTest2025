@@ -85,7 +85,7 @@ async def process_status_functions(application):
             await check_trigger(function, application)
 
 
-async def execute_robot(function_order, application):
+def execute_robot(function_order, application):
     """Выполнение действия, связанного с роботом"""
     try:
         # Загрузка конфигурации из JSON
@@ -94,13 +94,13 @@ async def execute_robot(function_order, application):
         # Определение типа действия робота
         if function_order.robot.action_type == "move_status":
             # Вызов функции изменения статуса
-            result, message = await move_application_status(
+            result, message = move_application_status(
                 application.id,
                 config['target_status']
             )
         elif function_order.robot.action_type == "notification":
             # Вызов функции отправки уведомления
-            result, message = await send_telegram_notification(
+            result, message = send_telegram_notification(
                 application.id,
                 config
             )
@@ -110,7 +110,7 @@ async def execute_robot(function_order, application):
         result, message = False, f"Ошибка выполнения: {str(e)}"
 
 
-async def check_trigger(function_order, application):
+def check_trigger(function_order, application):
     """Проверка условий триггера"""
     try:
         # Загрузка конфигурации триггера
@@ -121,15 +121,14 @@ async def check_trigger(function_order, application):
             "time_expiration": check_time_trigger,
             "status_check": check_status_trigger,
             "field_comparison": check_field_trigger
-        }.get(function_order.trigger.trigger_type)
+        }.get(function_order.trigger.type_condition)
 
         # Проверка условия триггера
-        condition_met, _ = await handler(application, config)
+        condition_met, _ = handler(application, config)
 
         if condition_met:
             # Запуск связанных действий при выполнении условия
-            for action in await sync_to_async(list)(function_order.trigger.actions.all()):
-                await execute_robot(action, application)
+            execute_robot(function_order, application)
 
     except Exception as e:
         # Подавление ошибок проверки триггера

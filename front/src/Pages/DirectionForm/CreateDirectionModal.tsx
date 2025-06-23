@@ -2,7 +2,7 @@ import { useState } from 'react'; // Хуки React
 import { useCreateDirectionMutation } from 'Features/ApiSlices/directionSlice'; // API для работы с направлениями
 import { useNotification } from 'Components/Common/Notification/Notification'; // Уведомления
 import NameInputField from 'Components/Forms/NameInputField'; // Поле ввода названия
-import DescriptionInputField from 'Components/Forms/DescriptioninputField'; // Поле ввода описания
+import DescriptionInputField from 'Components/Forms/DescriptionInputField.tsx'; // Поле ввода описания
 import UserSelector from 'Components/Selectors/UserSelector'; // Селектор пользователей
 import EventSelector from 'Components/Selectors/EventSelector'; // Селектор мероприятий
 import { Modal } from 'antd'; // Компонент модального окна
@@ -15,11 +15,11 @@ interface CreateDirectionModalProps {
 /**
  * Модальное окно для создания нового направления.
  * Позволяет задать название, описание, выбрать куратора и мероприятие для направления.
- * 
+ *
  * @component
  * @example
  * // Пример использования:
- * <CreateDirectionModal 
+ * <CreateDirectionModal
  *   isOpen={isModalOpen}
  *   onClose={() => setIsModalOpen(false)}
  * />
@@ -88,7 +88,7 @@ export default function CreateDirectionModal({ isOpen, onClose }: CreateDirectio
       await createDirection(payload);
       showNotification('Направление создано!', 'success');
       onClose();
-      
+
       // Сброс формы
       setNewDirection({
         name: '',

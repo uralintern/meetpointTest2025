@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-oh)5lzkw26ibbgat$bc8%ss)j)b&42zj_lyqo7_p^p*j+t*uc#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -85,7 +85,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10,  # значение по умолчанию, если не указано в запросе
+    # 'PAGE_SIZE': 10,  # значение по умолчанию, если не указано в запросе
 }
 
 AUTHENTICATION_BACKENDS = (
@@ -118,6 +118,7 @@ VK_CONFIG = {
 }
 SOCIAL_AUTH_TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_SECRET_TOKEN = os.getenv('TELEGRAM_SECRET_TOKEN')
 
 SOCIAL_AUTH_URL_NAMESPACE = 'social'  # Соответствует namespace в urls.py
 from datetime import timedelta

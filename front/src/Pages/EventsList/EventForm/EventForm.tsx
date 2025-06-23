@@ -17,7 +17,7 @@ import ChevronRightIcon from 'assets/icons/chevron-right.svg?react';
 import BackButton from 'Components/Common/BackButton/BackButton';
 import './EventForm.scss';
 import NameInputField from 'Components/Forms/NameInputField';
-import DescriptionInputField from 'Components/Forms/DescriptioninputField';
+import DescriptionInputField from 'Components/Forms/DescriptionInputField.tsx';
 import DateInputField from 'Components/Forms/DateInputField';
 import { Project, useGetProjectsQuery } from 'Features/ApiSlices/projectSlice';
 import { Direction } from 'Features/ApiSlices/directionSlice';

@@ -21,7 +21,5 @@ def role_required(role_type, model=None):
             if has_role(request.user, role_type, obj):
                 return view_func(request, *args, **kwargs)
             return HttpResponseForbidden("Доступ запрещен")
-
         return wrapper
-
     return decorator

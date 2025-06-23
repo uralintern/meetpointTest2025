@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'; // Хуки React
 import { useCreateProjectMutation } from 'Features/ApiSlices/projectSlice'; // Мутация создания проекта
 import { useNotification } from 'Components/Common/Notification/Notification'; // Хук уведомлений
 import NameInputField from 'Components/Forms/NameInputField'; // Поле ввода названия
-import DescriptionInputField from 'Components/Forms/DescriptioninputField'; // Поле ввода описания
+import DescriptionInputField from 'Components/Forms/DescriptionInputField.tsx'; // Поле ввода описания
 import { Modal } from 'antd'; // Модальное окно Ant Design
 import DirectionSelector from 'Components/Selectors/DirectionSelector'; // Селектор направления
 import { useUserRoles } from 'Features/context/UserRolesContext'; // Контекст ролей пользователя
@@ -17,13 +17,13 @@ interface CreateProjectModalProps {
  * Модальное окно создания нового проекта.
  * Позволяет задать название, описание и выбрать направление для проекта.
  * Автоматически фильтрует доступные направления в зависимости от ролей пользователя.
- * 
+ *
  * @component
  * @example
  * // Пример использования:
- * <CreateProjectModal 
- *   isOpen={isModalOpen} 
- *   onClose={() => setIsModalOpen(false)} 
+ * <CreateProjectModal
+ *   isOpen={isModalOpen}
+ *   onClose={() => setIsModalOpen(false)}
  * />
  *
  * @param {CreateProjectModalProps} props - Свойства компонента
@@ -50,7 +50,7 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
    */
   const filteredDirections = useMemo(() => {
     if (!allDirections) return []; // Если направления не загружены
-    
+
     if (hasRole('organizer')) {
       return allDirections; // Организатор видит все
     }
@@ -108,7 +108,7 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
       await createProject(newProject).unwrap();
       showNotification('Проект создан!', 'success');
       onClose();
-      
+
       // Сброс формы после успешного создания
       setNewProject({
         direction: 0,

@@ -1,4 +1,5 @@
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from rest_framework import serializers
 from .models import *
 from django.contrib.auth.models import User
@@ -129,6 +130,18 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
     # user = ProfileSerializer(read_only=True)
     # specializations = SpecializationSerializer(read_only=True, many=True)
     # statuses = Status_AppSerializer(read_only=True, many=True)
+    def validate(self, data):
+        event = data.get('event')
+        if event.stage != 'Набор участников':
+            raise serializers.ValidationError(
+                "Заявки можно создавать только для активных мероприятий"
+            )
+        if event.end_app <= timezone.now().date():
+            raise serializers.ValidationError(
+                "Срок приёма заявок закончился"
+            )
+
+        return data
 
     class Meta:
         model = Application
@@ -249,12 +262,6 @@ class EventCreateSerializer(serializers.ModelSerializer):
                   "end", "end_app"]
 
 
-class StatusSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Status
-        fields = '__all__'
-
-
 class StatusOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Status_order
@@ -269,9 +276,10 @@ class StatusOrderSerializer(serializers.ModelSerializer):
                 event=data['event'],
                 number=data['number']
         ).exclude(pk=self.instance.pk if self.instance else None).exists():
-            raise serializers.ValidationError(
-                "Позиция с таким номером уже существует для этого события"
-            )
+            # raise serializers.ValidationError(
+            #     "Позиция с таким номером уже существует для этого события"
+            # )
+            pass
         return data
 
     def create(self, validated_data):
@@ -291,18 +299,6 @@ class StatusOrderSerializer(serializers.ModelSerializer):
         """Пересчет порядковых номеров"""
         qs = Status_order.objects.filter(event=event).exclude(pk=exclude_pk)
         qs.filter(number__gte=new_number).update(number=models.F('number') + 1)
-
-
-class RobotSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Robot
-        fields = '__all__'
-
-
-class TriggerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Trigger
-        fields = '__all__'
 
 
 class FunctionOrderSerializer(serializers.ModelSerializer):
@@ -380,3 +376,30 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         write_only=True,
         validators=[validate_password]
     )
+
+
+class RobotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Robot
+        fields = '__all__'
+        extra_kwargs = {
+            'config': {'write_only': True}
+        }
+
+
+class TriggerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trigger
+        fields = '__all__'
+        extra_kwargs = {
+            'condition': {'write_only': True}
+        }
+
+
+class StatusSerializer(serializers.ModelSerializer):
+    robots = RobotSerializer(many=True, read_only=True)
+    triggers = TriggerSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Status
+        fields = '__all__'

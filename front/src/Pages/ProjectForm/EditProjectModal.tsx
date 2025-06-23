@@ -4,7 +4,7 @@ import { Project, useUpdateProjectMutation } from 'Features/ApiSlices/projectSli
 import { useNotification } from 'Components/Common/Notification/Notification'; // Хук уведомлений
 import DirectionSelector from 'Components/Selectors/DirectionSelector'; // Селектор направления
 import NameInputField from 'Components/Forms/NameInputField'; // Поле ввода названия
-import DescriptionInputField from 'Components/Forms/DescriptioninputField'; // Поле ввода описания
+import DescriptionInputField from 'Components/Forms/DescriptionInputField.tsx'; // Поле ввода описания
 import { useUserRoles } from 'Features/context/UserRolesContext'; // Контекст ролей пользователя
 import { useGetDirectionsQuery } from 'Features/ApiSlices/directionSlice'; // Запрос направлений
 
@@ -19,7 +19,7 @@ type EditProjectModalProps = {
  * Модальное окно редактирования существующего проекта.
  * Позволяет изменить название, описание и направление проекта.
  * Автоматически фильтрует доступные направления в зависимости от ролей пользователя.
- * 
+ *
  * @component
  * @example
  * // Пример использования:
@@ -33,11 +33,11 @@ type EditProjectModalProps = {
  * @param {EditProjectModalProps} props - Свойства компонента
  * @returns {JSX.Element} Модальное окно редактирования проекта
  */
-export default function EditProjectModal({ 
-  isOpen, 
-  onClose, 
-  project, 
-  onSuccess 
+export default function EditProjectModal({
+  isOpen,
+  onClose,
+  project,
+  onSuccess
 }: EditProjectModalProps): JSX.Element {
   const { showNotification } = useNotification(); // Хук уведомлений
   const [updateProject, { isLoading }] = useUpdateProjectMutation(); // Мутация обновления
@@ -83,7 +83,7 @@ export default function EditProjectModal({
     if (hasRole('direction_leader')) {
       return allDirections.filter((direction) => {
         const role = getRoleForObject(
-          'direction_leader', 
+          'direction_leader',
           direction.id,
           'crm.direction'
         );

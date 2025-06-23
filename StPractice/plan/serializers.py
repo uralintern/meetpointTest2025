@@ -16,6 +16,7 @@ class MeetingRespondSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+
 class ResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = Result

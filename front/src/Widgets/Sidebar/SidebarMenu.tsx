@@ -158,9 +158,9 @@ export default function SidebarMenu({ isOpen, onClose, user }: SidebarProps): JS
                 )}
                 <ul>
                   {section.items.map((item) => (
-                    <li 
-                      key={item.path} 
-                      onClick={() => handleNavigation(item.path)} 
+                    <li
+                      key={item.path}
+                      onClick={() => handleNavigation(item.path)}
                       className="SidebarMenuItem"
                     >
                       {item.label}
@@ -183,9 +183,9 @@ export default function SidebarMenu({ isOpen, onClose, user }: SidebarProps): JS
                 </div>
                 <ul>
                   {section.items.map((item) => (
-                    <li 
-                      key={item.path} 
-                      onClick={() => handleNavigation(item.path)} 
+                    <li
+                      key={item.path}
+                      onClick={() => handleNavigation(item.path)}
                       className="SidebarMenuItem"
                     >
                       {item.label}
