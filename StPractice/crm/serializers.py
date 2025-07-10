@@ -194,6 +194,18 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
         model = Application
         fields = "__all__"
 
+    def update(self, instance, validated_data):
+        new_status = validated_data.get('status')
+
+        if new_status and new_status.is_positive:
+            validated_data['is_approved'] = True
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
 
 class TestSerializer(serializers.ModelSerializer):
     class Meta:
