@@ -197,8 +197,11 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         new_status = validated_data.get('status')
 
-        if new_status and new_status.is_positive:
-            validated_data['is_approved'] = True
+        if new_status:
+            if new_status.is_positive:
+                validated_data['is_approved'] = True
+            elif instance.status != new_status:
+                validated_data['is_approved'] = False
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
