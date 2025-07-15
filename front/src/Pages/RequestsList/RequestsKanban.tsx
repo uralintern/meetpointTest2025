@@ -235,13 +235,19 @@ export default function RequestsKanban({
                 <div className="kanban-container">
                     {orderedStatuses.map(status => {
                         const columnRequests = requestsByStatus[status.id] || [];
+                        let cardColor = '';
+                        const nameLower = status.name.toLowerCase();
+                        if (nameLower.includes('принят') || status.is_positive) cardColor = '#52c41a';
+                        else if (nameLower.includes('отказ') || nameLower.includes('отклон') || (!status.is_positive && !nameLower.includes('рассмотр'))) cardColor = '#ff4d4f'; // красный
+                        else if (nameLower.includes('рассмотр')) cardColor = '#1890ff'; 
+                        else cardColor = '#d9d9d9'; 
+
                         return (
                             <div key={`status-${status.id}`} className="kanban-column">
                                 <div className={"kanban-column-header " + `${status._color}`}>
                                     <h3>{status.name}</h3>
                                     <span className="badge">{columnRequests.length}</span>
                                 </div>
-                                
                                 <Droppable 
                                     droppableId={`status-${status.id}`}
                                     isDropDisabled={isLoading}
@@ -268,6 +274,12 @@ export default function RequestsKanban({
                                                                 {...provided.dragHandleProps}
                                                                 className={`kanban-card ${snapshot.isDragging ? 'is-moving' : ''}`}
                                                                 onClick={() => openModal(request)}
+                                                                style={{
+                                                                    ...provided.draggableProps.style,
+                                                                    borderLeft: `6px solid ${cardColor}`,
+                                                                    background: '#fff',
+                                                                    boxShadow: snapshot.isDragging ? '0 2px 12px rgba(0,0,0,0.12)' : undefined,
+                                                                }}
                                                             >
                                                                 <div className="card-header">
                                                                     <h4>

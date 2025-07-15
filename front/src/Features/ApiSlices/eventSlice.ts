@@ -32,12 +32,7 @@ const eventApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['Event'], // Указывает, что данные мероприятий должны быть обновлены/перезапрошены
       transformResponse: (response: { count: number; next: string | null; previous: string | null; results: Event[] }) => {
-        return response.results.map(event => ({
-          ...event,
-          start: event.start ? new Date(event.start) : null,   // Преобразуем дату начала в объект Date
-          end: event.end ? new Date(event.end) : null,         // Преобразуем дату окончания в объект Date
-          end_app: event.end_app ? new Date(event.end_app) : null, // Преобразуем дату окончания подачи заявок в объект Date
-        }));
+        return response.results;
       },
     }),
 
@@ -50,9 +45,9 @@ const eventApi = apiSlice.injectEndpoints({
       providesTags: (result, error, id) => [{ type: 'Event', id }], // Тег для обновления конкретного мероприятия
       transformResponse: (response: Event) => ({
         ...response,
-        start: response.start ? new Date(response.start) : null,   // Преобразуем даты в объект Date
-        end: response.end ? new Date(response.end) : null,
-        end_app: response.end_app ? new Date(response.end_app) : null,
+        start: response.start,
+        end: response.end,
+        end_app: response.end_app,
       }),
     }),
 
@@ -61,19 +56,22 @@ const eventApi = apiSlice.injectEndpoints({
       query: (newEvent) => {
         const formatDate = (value?: string | null) => {
           if (!value) return null;
-        
-          const parsed = dayjs(value); // Убираем строгий формат
-          return parsed.isValid() ? parsed.format('YYYY-MM-DD') : null;
+          return typeof value === 'string' ? value : null;
         };
 
         return {
           url: '/api/events/create/',  // URL для создания нового мероприятия
           method: 'POST',              // Метод POST
           body: {
-            ...newEvent,
+            name: newEvent.name,
+            description: newEvent.description,
+            stage: newEvent.stage,
             start: formatDate(newEvent.start),  // Форматируем дату начала
             end: formatDate(newEvent.end),      // Форматируем дату окончания
             end_app: formatDate(newEvent.end_app),  // Форматируем дату окончания подачи заявок
+            specializations: Array.isArray(newEvent.specializations)
+              ? newEvent.specializations
+              : [],
           },
           headers: {
             'Content-Type': 'application/json', // Указываем, что тело запроса в формате JSON

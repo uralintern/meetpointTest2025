@@ -44,6 +44,19 @@ const EventSetupSummary = () => {
 
   const [status, setStatus] = useState<string>('');
 
+  const formatDate = (date: any) => {
+    if (!date) return null;
+    if (typeof date === 'string') {
+      // Если строка, оставляем только дату
+      return date.length > 10 ? date.slice(0, 10) : date;
+    }
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      // Преобразуем объект Date в строку
+      return date.toISOString().slice(0, 10);
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     setLoading(true);
     setError('');
@@ -52,13 +65,21 @@ const EventSetupSummary = () => {
     try {
       let eventId: number;
 
+      const eventPayload = {
+        ...stepEvent,
+        start: formatDate(stepEvent.start),
+        end: formatDate(stepEvent.end),
+        end_app: formatDate(stepEvent.end_app),
+        specializations: Array.isArray(stepEvent.specializations)
+          ? stepEvent.specializations
+          : [],
+      };
+
       if (editingEventId) {
-        // Редактирование мероприятия
-        const eventResponse = await updateEvent({ id: editingEventId, data: stepEvent }).unwrap();
+        const eventResponse = await updateEvent({ id: editingEventId, data: eventPayload }).unwrap();
         eventId = eventResponse.event_id;
       } else {
-        // Создание нового мероприятия
-        const eventResponse = await createEvent(stepEvent).unwrap();
+        const eventResponse = await createEvent(eventPayload).unwrap();
         eventId = eventResponse.id;
       }
 
@@ -206,15 +227,18 @@ const EventSetupSummary = () => {
       // Перенаправляем на страницу с успехом
       navigate('/events');
     } catch (error: any) {
-    
-      // Устанавливаем сообщение об ошибке
-      setError(`Произошла ошибка при отправке данных. Детали: ${error.data[0]}`);
-      
-      // Логируем ошибку в консоль для отладки
-      console.error(`Ошибка при отправке данных:  Детали: ${error.data[0]}`);
-    
-      // Показываем уведомление
-      showNotification(`Ошибка при отправке данных:  Детали: ${error.data[0]}`, 'error');
+      let details =
+        error?.data?.detail ||
+        error?.data?.message ||
+        (Array.isArray(error?.data) ? error.data.join(', ') : undefined) ||
+        (typeof error?.data === 'object' ? JSON.stringify(error.data) : undefined) ||
+        error?.message ||
+        error?.toString() ||
+        'Нет подробностей';
+
+      setError(`Произошла ошибка при отправке данных. Детали: ${details}`);
+      console.error('Ошибка при отправке данных:', error, 'Детали:', details);
+      showNotification(`Ошибка при отправке данных: Детали: ${details}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -279,6 +303,12 @@ const EventSetupSummary = () => {
       
       dispatch(updateEventField({ field: 'end_app', value: formattedDate }));
     };
+
+  const STATUS_MAP = {
+    positive: { label: 'Принято', style: { background: '#52c41a', color: '#fff' } },
+    negative: { label: 'Отказано', style: { background: '#ff4d4f', color: '#fff' } },
+    pending:  { label: 'В рассмотрении', style: { background: '#1890ff', color: '#fff' } },
+  };
 
   return (
     <div className="SetupContainer">
@@ -388,14 +418,18 @@ const EventSetupSummary = () => {
           <>
             <h3>Созданные статусы:</h3>
             <ul className="SelectedList StatusesList">
-              {stepStatuses.statuses.map((status, index) => (
-                <li
-                  key={status.id}
-                  className={`SelectedListItem ${status.is_positive ? 'positive' : 'negative'}`}
-                >
-                  {index + 1}. {status.name} {status.description ? `(${status.description})` : ""}
-                </li>
-              ))}
+              {stepStatuses.statuses.map((status, index) => {
+                const { label, style } = STATUS_MAP[status.type] || { label: '', style: {} };
+                return (
+                  <li
+                    key={status.id}
+                    className="SelectedListItem"
+                    style={{ ...style, borderRadius: '8px', marginBottom: '8px', padding: '8px 16px', fontWeight: 500 }}
+                  >
+                    {index + 1}. {label}
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}

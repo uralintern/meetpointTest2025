@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Button, Form, Input, Radio, Typography } from 'antd';
+import { Modal, Button, Dropdown, Menu, Typography } from 'antd';
 import { StatusApp } from 'Features/ApiSlices/statusAppSlice';
 import CloseIcon from 'assets/icons/close.svg?react';
 
 const { Title } = Typography;
 
+const DEFAULT_OPTION = { key: '', label: 'Выберите статус', className: '', style: { background: 'transparent', color: '#333', border: '1px solid #d9d9d9' } };
+const STATUS_OPTIONS = [
+  DEFAULT_OPTION,
+  { key: 'positive', label: 'Принят', className: 'radio-option radio-positive', style: { background: '#52c41a', color: '#fff' } },
+  { key: 'negative', label: 'Отказано', className: 'radio-option radio-negative', style: { background: '#ff4d4f', color: '#fff' } },
+  { key: 'pending', label: 'В рассмотрении', className: 'radio-option radio-pending', style: { background: '#1890ff', color: '#fff' } },
+];
 
 interface StatusModalProps {
   visible: boolean;
@@ -46,62 +53,64 @@ interface StatusModalProps {
  * @returns {JSX.Element} Модальное окно с формой редактирования статуса
  */
 export default function StatusModal({
-  visible, 
-  onCancel, 
+  visible,
+  onCancel,
   onAddStatus,
   onUpdateStatus,
   editingStatus
 }: StatusModalProps): JSX.Element {
-  const [form] = Form.useForm(); // Хук формы Ant Design
-  const [statusType, setStatusType] = useState<'positive' | 'negative'>('positive'); // Тип статуса
+  const [selectedType, setSelectedType] = useState<string>('');
 
-  // Сброс формы при закрытии модального окна
   useEffect(() => {
     if (!visible) {
-      form.resetFields();
+      setSelectedType('');
     }
-  }, [visible, form]);
+  }, [visible]);
 
-  // Заполнение формы данными редактируемого статуса
   useEffect(() => {
     if (editingStatus && visible) {
-      form.setFieldsValue({
-        name: editingStatus.name,
-        description: editingStatus.description
-      });
-      setStatusType(editingStatus.is_positive ? 'positive' : 'negative');
+      setSelectedType(editingStatus.type || '');
     }
-  }, [editingStatus, visible, form]);
+  }, [editingStatus, visible]);
 
-  /**
-   * Обработчик отправки формы
-   * Валидирует данные и вызывает соответствующий коллбэк (добавление/обновление)
-   */
-  const handleSubmit = () => {
-    form.validateFields().then(values => {
-      const statusData: StatusApp = {
-        id: editingStatus?.id || Date.now(), // Используем существующий ID или генерируем временный
-        name: values.name,
-        description: values.description,
-        is_positive: statusType === 'positive',
-      };
-
-      if (editingStatus && onUpdateStatus) {
-        onUpdateStatus(statusData);
-      } else {
-        onAddStatus(statusData);
-      }
-
-      form.resetFields();
-      onCancel();
-    });
+  const handleSelect = ({ key }: { key: string }) => {
+    setSelectedType(key);
   };
+
+  const handleSubmit = () => {
+    if (!selectedType) return;
+    const option = STATUS_OPTIONS.find(opt => opt.key === selectedType);
+    const statusData: StatusApp = {
+        id: editingStatus?.id || Date.now(),
+        name: option?.label || '',
+        type: selectedType as 'positive' | 'negative' | 'pending',
+        is_positive: selectedType === 'positive' || selectedType === 'pending',
+    };
+    if (editingStatus && onUpdateStatus) {
+        onUpdateStatus(statusData);
+    } else {
+        onAddStatus(statusData);
+    }
+    onCancel();
+  };
+
+  const menu = (
+    <Menu onClick={handleSelect}>
+      {STATUS_OPTIONS.slice(1).map(opt => (
+        <Menu.Item key={opt.key} className={opt.className} style={opt.style}>
+          {opt.label}
+        </Menu.Item>
+      ))}
+    </Menu>
+  );
+
+  const currentOption = STATUS_OPTIONS.find(opt => opt.key === selectedType) || DEFAULT_OPTION;
 
   return (
     <Modal
       title={
         <Title level={4} className="ModalTitle">
-          {editingStatus ? 'Редактирование статуса' : 'Создание статуса'}
+          {editingStatus ? 'Редактирование статуса' : 'Добавление статуса'}
         </Title>
       }
       open={visible}
@@ -118,46 +127,13 @@ export default function StatusModal({
         </Button>,
       ]}
     >
-      <Form form={form} layout="vertical">
-        <Form.Item 
-          className="ModalFormItem" 
-          name="name"
-          rules={[{ required: true, message: 'Введите название статуса' }]}
-        >
-          <Input
-            placeholder="Название статуса *"
-            className='ModalFormField'
-          />
-        </Form.Item>
-        <Form.Item 
-          className="ModalFormItem" 
-          name="description"
-        >
-          <Input.TextArea 
-            placeholder="Описание статуса"
-            className='ModalFormField' 
-            autoSize={{ minRows: 1, maxRows: 5 }}
-            showCount 
-            maxLength={200}
-          />
-        </Form.Item>
-        <Form.Item className="ModalFormItem">
-          <Radio.Group 
-            block
-            value={statusType}
-            onChange={(e) => setStatusType(e.target.value)}
-          >
-            <div className="radio-group">
-              <Radio value="positive" className="radio-option radio-positive">
-                Положительный
-              </Radio>
-              <Radio value="negative" className="radio-option radio-negative">
-                Отрицательный
-              </Radio>
-            </div>
-          </Radio.Group>
-        </Form.Item>
-      </Form>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Dropdown overlay={menu} trigger={["click"]}>
+          <Button style={currentOption.style}>
+            {currentOption.label}
+          </Button>
+        </Dropdown>
+      </div>
     </Modal>
   );
 };

@@ -33,13 +33,17 @@ const statusAppApi = apiSlice.injectEndpoints({
       providesTags: ['StatusApp'],
     }),
     createStatusApp: builder.mutation<StatusApp, Omit<StatusApp, 'id'>>({
-      query: (newStatus) => ({ // Создаем новый статус
+      query: (newStatus) => ({
         url: '/api/status_app/',
         method: 'POST',
-        body: newStatus,  
+        body: {
+          name: newStatus.name,
+          type: newStatus.type,
+          description: newStatus.description ?? '',
+          is_positive: newStatus.is_positive ?? (newStatus.type === 'positive'),
+        },
         headers: {
           'Content-Type': 'application/json',
-
         },
         withCredentials: true,
       }),

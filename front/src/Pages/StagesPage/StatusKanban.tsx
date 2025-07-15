@@ -4,6 +4,12 @@ import CloseIconWhite from 'assets/icons/close-white.svg?react';
 import EditIconWhite from 'assets/icons/edit-white.svg?react';
 import { useState } from 'react';
 
+const STATUS_MAP = {
+  positive: { label: 'Принят', style: { background: '#52c41a', color: '#fff', height: '80px' } },
+  negative: { label: 'Отказано', style: { background: '#ff4d4f', color: '#fff', height: '80px' } },
+  pending:  { label: 'В рассмотрении', style: { background: '#1890ff', color: '#fff', height: '80px' } },
+};
+
 interface StatusKanbanProps {
   editingEventId: number;
   statuses: StatusApp[];
@@ -105,30 +111,25 @@ export default function StatusKanban({
               className="kanbanBoard"
             >
               {statuses.map((status, index) => {
-                
+                const { label, style } = STATUS_MAP[status.type] || { label: '', style: {} };
                 return (
                   <Draggable 
                     key={status.id} 
                     draggableId={`status-${status.id}`}
                     index={index}
-                    isDragDisabled={editingEventId ? true : false} // Запрещаем перетаскивание при редактировании
+                    isDragDisabled={editingEventId ? true : false}
                   >
                     {(provided, snapshot) => (
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
-                        className={`kanbanColumn ${
-                          status.is_positive ? 'positive' : 'negative'
-                        } ${
-                          status.description ? 'hasDescription' : ''
-                        } ${
-                          snapshot.isDragging ? 'isDragging' : ''
-                        }`}
+                        className={`kanbanColumn status-${status.type} ${snapshot.isDragging ? 'isDragging' : ''}`}
+                        style={style}
                       >
                         <div className="kanbanColumnHeader">
-                          <span className="statusTitle">{status.name}</span>
-                          {!editingEventId && ( // Показываем кнопки только при создании
+                          <span className="statusTitle">{label}</span>
+                          {!editingEventId && (
                             <div className="statusActions">
                               <button 
                                 className="statusRemoveBtn"
@@ -153,14 +154,6 @@ export default function StatusKanban({
                             </div>
                           )}
                         </div>
-                        
-                        {status.description && (
-                          <div className="kanbanColumnDescriptionWrapper">
-                            <div className="statusDescription">
-                              {status.description}
-                            </div>
-                          </div>
-                        )}
                         
                         {/**<div className="kanbanColumnBody">
                           <Droppable 
